@@ -1,11 +1,14 @@
 // This is DownNodeRecoveryTester.java
-// Author:  Brian Williams ( brian.williams@couchbase.com )
-// Date:    March 27, 2015
+// Author:   Brian Williams ( brian.williams@couchbase.com )
+// Date:     March 27, 2015
+// Updated:  February 23, 2016
 // 
 // This is a Java command-line application that performs a test when a node is down
-// It connects to 3 nodes, and it has 3 specific keys that are known to hash to each of the 3 nodes.
+// It connects to 3 nodes, and it has 3 specific keys that are known to hash to each of the 3 nodes,
+// specifically on the beer-sample sample data set.
+//
 // To use this program, run it against a 3-node cluster in a steady state, and then take out
-// a node such as node 2.
+// any one node, such as node 2.
 //
 // You should observe timeouts for node 2's key, until such time as you Fail Over the node,
 // at which point, either node 1 or node 3 will take over, and you can observe this in the UI
@@ -18,8 +21,10 @@
 //   358544 Mar 26 14:41 java-client-2.1.2-dp.jar
 //  3905643 Mar 26 14:42 core-io-1.1.2-dp.jar
 //
-// Developed using Eclipse Version: Luna Service Release 1 (4.4.1)
-// and JavaSE-1.8
+// Also tested with 2.1.6 SDK
+// Available here:  http://packages.couchbase.com/clients/java/2.1.6/Couchbase-Java-Client-2.1.6.zip
+//
+// Developed using Eclipse Version: Luna Service Release 1 (4.4.1) and JavaSE-1.8 on Mac 10.10.5
 
 
 package com.couchbase.support;
@@ -28,7 +33,6 @@ import com.couchbase.client.java.*;
 import com.couchbase.client.java.document.*;
 import com.couchbase.client.java.env.*;
 
-import java.util.concurrent.TimeoutException;
 import java.util.logging.*;
 import java.util.Properties;
 import java.util.List;
@@ -40,7 +44,7 @@ class TestResult {
 	// test information
 	String keyToTest;
 	int nodeNumber;
-	
+
 	// results
 	int returnedDocSizeGet;
 	int returnedDocSizeReplica;
@@ -66,12 +70,12 @@ class TestResult {
 
 public class DownNodeRecoveryTester {
 
-	// Replace with your cluster nodes	
-	static String node1Name  = "10.0.0.1";
-	static String node2Name  = "10.0.0.2";
-	static String node3Name  = "10.0.0.3";
-	static String bucketName = "beer-sample";
-	
+	// Replace with your cluster nodes
+	static String node1Name  = "10.4.2.121";
+	static String node2Name  = "10.4.2.122";
+	static String node3Name  = "10.4.2.123";
+	static String bucketName = "beer-sample";  // MUST use the beer-sample, do not change!
+
 	// This test relies on using certain keys that are known to hash to certain nodes
 	// using something like:
 	//
@@ -84,30 +88,31 @@ public class DownNodeRecoveryTester {
 	static long globalTimeout          = 2000;
 	static int sleepInterval           = 500;        	 // 500 milliseconds between tests
 	static boolean debuggingMax        = false;
-		
+
 	private static Cluster createCouchbaseCluster() {
 		CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().build();
-		// More than one node is specified, for maximum robustness
 		Cluster cluster = CouchbaseCluster.create(env, node1Name, node2Name, node3Name);
 		return cluster;
 	}
 
+	// Given a nodeNumber, a Bucket reference, and a document key, performs a get and
+	// a get from replica.  Create a new TestResult and return it.
 	static TestResult testOne(int nodeNumber, Bucket bucket, String keyToTest) {
-		
-		System.out.println("########## About to testOne on node " + nodeNumber + " ##########");
-		
+
+		System.out.println("########## About to testOne on node " + nodeNumber + " key: " + keyToTest + " ##########");
+
 		long t1 = 0, t2 = 0, timeTaken = 0;
 		JsonDocument jsonDoc = null;
 		List<JsonDocument> jsonDocList = null;
 		int jsonDocStringLength = -1;
 		int jsonDocListSize = -1;
-		
+
 		TestResult tr = new TestResult();
 		tr.keyToTest = keyToTest;
 		tr.nodeNumber = nodeNumber;
-		
+
 		// TRY A REGULAR GET
-		
+
 		try {	
 			t1 = System.currentTimeMillis();
 			//jsonDoc  = bucket.get(keyToTest,globalTimeout, TimeUnit.MILLISECONDS);
@@ -116,13 +121,31 @@ public class DownNodeRecoveryTester {
 			tr.returnedDocSizeGet = jsonDocStringLength;
 		}
 		catch (RuntimeException e) {
-			if (e.getCause() instanceof java.util.concurrent.TimeoutException) {
+
+			Throwable runtimeExceptionCause = e.getCause();
+
+			if (runtimeExceptionCause == null) {
+				System.out.println("--------------  Doing get() Caught RuntimeException with no 'cause'.  Exiting.  --------------");
+				e.printStackTrace();			
+				System.exit(1);
+			}
+			else if (runtimeExceptionCause instanceof java.util.concurrent.TimeoutException) {
 				// No need to print stack trace, I know what it is.
 				System.out.println("--------------  Doing get() Caught runtime/timeout exception  --------------");
 				tr.exceptionFromGet = true;
 			}
+			else if (runtimeExceptionCause instanceof com.couchbase.client.core.RequestCancelledException) {
+				System.out.println("--------------  Doing get() Caught request cancelled exception  --------------");
+				tr.exceptionFromGet = true;
+			}
+			else if (runtimeExceptionCause instanceof java.lang.RuntimeException) {
+				// Probably came from com.couchbase.client.java.util.Blocking.blockForSingle()
+				System.out.println("--------------  Doing get() Caught a Java Runtime Exception  --------------");
+				tr.exceptionFromGet = true;
+			}
 			else {
-				System.out.println("--------------  Doing get() Caught unexpected runtime exception  --------------");
+				System.out.println("--------------  Doing get() Caught UNEXPECTED runtime exception.  Exiting.  --------------");
+				System.out.println(runtimeExceptionCause.getClass().getName());
 				e.printStackTrace();			
 				System.exit(1);
 			}
@@ -132,39 +155,52 @@ public class DownNodeRecoveryTester {
 			e.printStackTrace();			
 			System.exit(1);
 		}
-		
+
 		t2 = System.currentTimeMillis();
 		timeTaken = t2 - t1;
 		tr.getTimeTaken = timeTaken;
 		System.out.println("Node: " + nodeNumber + " get() operation took " + timeTaken + " ms. Doc length: " + jsonDocStringLength);	
-		
+
 		// TRY TO GET FROM REPLICA
-		
+
 		// reset reused variable
 		jsonDocStringLength = -1;
-		
+
 		try {
 			t1 = System.currentTimeMillis();
 			jsonDocList  = bucket.getFromReplica(keyToTest, ReplicaMode.FIRST);
-			jsonDoc = jsonDocList.get(0);
 			jsonDocListSize = jsonDocList.size();
-			jsonDocStringLength = jsonDoc.toString().length();
-			tr.returnedDocSizeReplica = jsonDocStringLength;						
+			if (jsonDocListSize >= 1) {
+				jsonDoc = jsonDocList.get(0);	// Get the first one in the list
+				jsonDocStringLength = jsonDoc.toString().length();
+				tr.returnedDocSizeReplica = jsonDocStringLength;	
+			}
+			else {
+				System.out.println("getFromReplica returned no results.");
+			}
 		} 
 		catch (RuntimeException e2) {
-			if (e2.getCause() instanceof java.util.concurrent.TimeoutException) {
+
+			Throwable runtimeExceptionCause = e2.getCause();
+
+			if (runtimeExceptionCause == null) {
+				System.out.println("--------------  Doing get() Caught RuntimeException with no 'cause'.  Exiting.  --------------");
+				e2.printStackTrace();			
+				System.exit(1);
+			}
+			else if (runtimeExceptionCause instanceof java.util.concurrent.TimeoutException) {
 				// No need to print stack trace, I know what it is.
 				System.out.println("--------------  Doing getFromReplica() Caught runtime/timeout exception  --------------");
 				tr.exceptionFromReplica = true;
 			}
 			else {
-				System.out.println("--------------  Doing getFromReplica() Caught unexpected runtime exception  --------------");
+				System.out.println("--------------  Doing getFromReplica() Caught unexpected RuntimeException  --------------");
 				e2.printStackTrace();			
 				System.exit(1);
 			}
 		}
 		catch (Exception e3 ) {
-			System.out.println("--------------  Doing getFromReplica() Caught other unexpected exception  --------------");
+			System.out.println("--------------  Doing getFromReplica() Caught other unexpected Exception  --------------");
 			e3.printStackTrace();
 			System.exit(1);
 		}
@@ -174,25 +210,28 @@ public class DownNodeRecoveryTester {
 		System.out.println("Node: " + nodeNumber + " getFromReplica() operation took " + timeTaken + " ms. List length: " + jsonDocListSize + " Doc length: " + jsonDocStringLength);	
 
 		System.out.println("########## Finished testOne on node " + nodeNumber + " ##########");
-		
+
 		return tr;
-		
+
 	} // testOne key
-	
-	
-// Sample report from the method below:
-//
-//	Node #     get() exception  getFromReplica() exception  get() time  replica time  get size  replica size
-//	---------  ---------------  --------------------------  ----------  ------------  --------  ------------
-//	        1            false                        true          26          2501       406            -1
-//	        2             true                       false        2501            13        -1           613
-//	        3            false                        true           2          2500       656            -1	
-	
+
+
+	// Sample report from the method below:
+	//
+	//	Node #     get() exception  getFromReplica() exception  get() time  replica time  get size  replica size
+	//	---------  ---------------  --------------------------  ----------  ------------  --------  ------------
+	//	        1            false                        true          26          2501       406            -1
+	//	        2             true                       false        2501            13        -1           613
+	//	        3            false                        true           2          2500       656            -1	
+
+	// The example above is from when node 2 is down, for example with "sudo service couchbase-server stop".
+	// It shows that get is succeeding on nodes 1 and 3, and failing on node 2.
+
 	static void printTestResultList(List<TestResult> listOfTestResults) {
-	
+
 		System.out.println("Node #     get() exception  getFromReplica() exception  get() time  replica time  get size  replica size");
 		System.out.println("---------  ---------------  --------------------------  ----------  ------------  --------  ------------");
-		
+
 		for( TestResult tr: listOfTestResults) {
 			System.out.format("%9d  %15b  %26b  %10d  %12d  %8d  %12d\n", 
 					tr.nodeNumber, 
@@ -205,11 +244,11 @@ public class DownNodeRecoveryTester {
 		}
 	}
 
-	
+
 	public static void main(String[] args) {
 
 		System.out.println("Starting...");
-		
+
 		if ( debuggingMax ) {
 			Logger.getLogger("com.couchbase.client").setLevel(Level.FINEST);
 			for(Handler h : Logger.getLogger("com.couchbase.client").getParent().getHandlers()) {
@@ -228,45 +267,45 @@ public class DownNodeRecoveryTester {
 
 		System.out.println("--------------  About to open the bucket  --------------");
 		Bucket bucket = cluster.openBucket(bucketName);	
-		
+
 		long timeNow;
-		
+
 		List<TestResult> testResultList = new ArrayList<TestResult>();
-		
+
 		System.out.println("--------------  About to enter the main loop  --------------");
 
 		try {
 
-		while (true) {
+			while (true) {
 
-		timeNow = System.currentTimeMillis();
+				timeNow = System.currentTimeMillis();
 
-		System.out.println("--------------  About to perform tests on keys " + timeNow + "  --------------");
+				System.out.println("--------------  About to perform tests on keys " + timeNow + "  --------------");
 
-		TestResult resultFromNode1 = testOne(1, bucket, keyThatHashesToNode1);
-		TestResult resultFromNode2 = testOne(2, bucket, keyThatHashesToNode2);
-		TestResult resultFromNode3 = testOne(3, bucket, keyThatHashesToNode3);
-		
-		testResultList.add(resultFromNode1);
-		testResultList.add(resultFromNode2);
-		testResultList.add(resultFromNode3);
-		
-		printTestResultList(testResultList);
-		
-		testResultList.clear();
-		
-		System.out.println("---------------- About to sleep... ------------");
+				TestResult resultFromNode1 = testOne(1, bucket, keyThatHashesToNode1);
+				TestResult resultFromNode2 = testOne(2, bucket, keyThatHashesToNode2);
+				TestResult resultFromNode3 = testOne(3, bucket, keyThatHashesToNode3);
 
-		// Sleepy Time
-		try {
-			Thread.sleep(sleepInterval);
-		}
-		catch (Exception e) {
-			System.out.println("--------------  Caught exception while sleep()ing  --------------");
-			e.printStackTrace();
-		}
+				testResultList.add(resultFromNode1);
+				testResultList.add(resultFromNode2);
+				testResultList.add(resultFromNode3);
 
-		} // main loop
+				printTestResultList(testResultList);
+
+				testResultList.clear();
+
+				System.out.println("---------------- About to sleep... ------------");
+
+				// Sleepy Time
+				try {
+					Thread.sleep(sleepInterval);
+				}
+				catch (Exception e) {
+					System.out.println("--------------  Caught exception while sleep()ing  --------------");
+					e.printStackTrace();
+				}
+
+			} // main loop
 
 		} catch ( Throwable t ) {
 
@@ -280,3 +319,5 @@ public class DownNodeRecoveryTester {
 	}
 
 }
+
+// EOF
