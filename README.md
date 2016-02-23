@@ -17,3 +17,10 @@ The first row is a get() test to node 1, with a key that is known to hash to nod
 
 You can remove and fail over nodes while this program is running, and observe the results in the table output by this program.
 
+    Node #     get() exception  getFromReplica() exception  get() time  replica time  get size  replica size
+    ---------  ---------------  --------------------------  ----------  ------------  --------  ------------
+            1            false                        true           1          2503       406            -1
+            2             true                       false        2500             3        -1           614
+            3            false                        true           2          2504       657            -1
+
+The above is an example when node 2 was stopped.
