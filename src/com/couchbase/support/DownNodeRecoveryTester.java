@@ -91,7 +91,7 @@ public class DownNodeRecoveryTester {
     static boolean errorOnly           = true; 
 
 	private static Cluster createCouchbaseCluster() {
-	    CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().kvTimeout(1500).build();
+	    CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().kvTimeout(2500).build();
 		Cluster cluster = CouchbaseCluster.create(env, node1Name, node2Name, node3Name);
 		return cluster;
 	}
