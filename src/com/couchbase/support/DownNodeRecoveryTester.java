@@ -85,8 +85,8 @@ public class DownNodeRecoveryTester {
 	static String keyThatHashesToNode2 = "21st_amendment_brewery_cafe-21a_ipa";
 	static String keyThatHashesToNode3 = "21st_amendment_brewery_cafe-oyster_point_oyster_stout";
 	// 21st_amendment_brewery_cafe also goes to node 2
-	static long globalTimeout          = 1000;
-	static int sleepInterval           = 200;        	 // 500 milliseconds between tests
+	static long globalTimeout          = 2000;
+	static int sleepInterval           = 250;        	 // 500 milliseconds between tests
 	static boolean debuggingMax        = false;
     static boolean errorOnly           = true; 
 
