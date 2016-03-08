@@ -85,13 +85,13 @@ public class DownNodeRecoveryTester {
 	static String keyThatHashesToNode2 = "21st_amendment_brewery_cafe-21a_ipa";
 	static String keyThatHashesToNode3 = "21st_amendment_brewery_cafe-oyster_point_oyster_stout";
 	// 21st_amendment_brewery_cafe also goes to node 2
-	static long globalTimeout          = 2000;
+	static long globalTimeout          = 500;
 	static int sleepInterval           = 250;        	 // 500 milliseconds between tests
 	static boolean debuggingMax        = false;
     static boolean errorOnly           = true; 
 
 	private static Cluster createCouchbaseCluster() {
-	    CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().kvTimeout(2500).build();
+	    CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().kvTimeout(500).build();
 		Cluster cluster = CouchbaseCluster.create(env, node1Name, node2Name, node3Name);
 		return cluster;
 	}
