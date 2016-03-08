@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="lib">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java-client-2.1.2-dp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/core-io-1.1.2-dp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/rxjava-1.0.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

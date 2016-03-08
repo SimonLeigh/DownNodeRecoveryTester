@@ -71,9 +71,9 @@ class TestResult {
 public class DownNodeRecoveryTester {
 
 	// Replace with your cluster nodes
-	static String node1Name  = "10.4.2.121";
-	static String node2Name  = "10.4.2.122";
-	static String node3Name  = "10.4.2.123";
+	static String node1Name  = "ec2-52-12-74-194.us-west-2.compute.amazonaws.com";
+	static String node2Name  = "ec2-52-12-161-114.us-west-2.compute.amazonaws.com";
+	static String node3Name  = "ec2-54-203-163-149.us-west-2.compute.amazonaws.com";
 	static String bucketName = "beer-sample";  // MUST use the beer-sample, do not change!
 
 	// This test relies on using certain keys that are known to hash to certain nodes
@@ -85,12 +85,13 @@ public class DownNodeRecoveryTester {
 	static String keyThatHashesToNode2 = "21st_amendment_brewery_cafe-21a_ipa";
 	static String keyThatHashesToNode3 = "21st_amendment_brewery_cafe-oyster_point_oyster_stout";
 	// 21st_amendment_brewery_cafe also goes to node 2
-	static long globalTimeout          = 2000;
-	static int sleepInterval           = 500;        	 // 500 milliseconds between tests
+	static long globalTimeout          = 1000;
+	static int sleepInterval           = 200;        	 // 500 milliseconds between tests
 	static boolean debuggingMax        = false;
+    static boolean errorOnly           = true; 
 
 	private static Cluster createCouchbaseCluster() {
-		CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().build();
+	    CouchbaseEnvironment env = DefaultCouchbaseEnvironment.builder().kvTimeout(1500).build();
 		Cluster cluster = CouchbaseCluster.create(env, node1Name, node2Name, node3Name);
 		return cluster;
 	}
@@ -261,6 +262,20 @@ public class DownNodeRecoveryTester {
 			System.setProperties(systemProperties);
 			// org.apache.log4j.BasicConfigurator.configure();
 		} // debugging
+
+                if ( errorOnly ) {                                                                                                                  
+		    Logger.getLogger("com.couchbase.client").setLevel(Level.SEVERE);                                                               
+		    for(Handler h : Logger.getLogger("com.couchbase.client").getParent().getHandlers()) {                                          
+			if(h instanceof ConsoleHandler) {                                                                                      
+			    h.setLevel(Level.SEVERE);                                                                                      
+			}
+		    }
+		    Properties systemProperties = System.getProperties();
+		    systemProperties.put("net.spy.log.LoggerImpl", "net.spy.memcached.compat.log.Log4JLogger");
+		    System.setProperties(systemProperties);
+		    // org.apache.log4j.BasicConfigurator.configure();                                                                             
+                } // error only
+
 
 		System.out.println("--------------  About to open Couchbase cluster  --------------");
 		Cluster cluster = createCouchbaseCluster(); 
