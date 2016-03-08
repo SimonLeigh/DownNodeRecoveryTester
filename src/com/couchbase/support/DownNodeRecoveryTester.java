@@ -71,9 +71,9 @@ class TestResult {
 public class DownNodeRecoveryTester {
 
 	// Replace with your cluster nodes
-	static String node1Name  = "ec2-52-12-74-194.us-west-2.compute.amazonaws.com";
-	static String node2Name  = "ec2-52-12-161-114.us-west-2.compute.amazonaws.com";
-	static String node3Name  = "ec2-54-203-163-149.us-west-2.compute.amazonaws.com";
+	static String node1Name  = "ec2-54-212-59-90.us-west-2.compute.amazonaws.com";
+	static String node2Name  = "ec2-54-184-119-64.us-west-2.compute.amazonaws.com";
+	static String node3Name  = "ec2-52-12-161-114.us-west-2.compute.amazonaws.com";
 	static String bucketName = "beer-sample";  // MUST use the beer-sample, do not change!
 
 	// This test relies on using certain keys that are known to hash to certain nodes
