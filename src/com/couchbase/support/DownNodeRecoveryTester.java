@@ -127,9 +127,10 @@ public class DownNodeRecoveryTester {
 			System.out.println(e.getCause());
 
 			if (runtimeExceptionCause == null) {
-				System.out.println("--------------  Doing get() Caught RuntimeException with no 'cause'.  Exiting.  --------------");
-				e.printStackTrace();			
-				System.exit(1);
+				System.out.println("--------------  Doing get() Caught RuntimeException with no 'cause'  --------------");
+				//e.printStackTrace();
+				//System.exit(1);
+				tr.exceptionFromGet = true;
 			}
 			else if (runtimeExceptionCause instanceof java.util.concurrent.TimeoutException) {
 				// No need to print stack trace, I know what it is.
