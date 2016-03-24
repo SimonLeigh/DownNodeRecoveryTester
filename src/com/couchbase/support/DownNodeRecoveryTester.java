@@ -124,6 +124,7 @@ public class DownNodeRecoveryTester {
 		catch (RuntimeException e) {
 
 			Throwable runtimeExceptionCause = e.getCause();
+			System.out.println(e.getCause());
 
 			if (runtimeExceptionCause == null) {
 				System.out.println("--------------  Doing get() Caught RuntimeException with no 'cause'.  Exiting.  --------------");
