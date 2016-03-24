@@ -71,9 +71,9 @@ class TestResult {
 public class DownNodeRecoveryTester {
 
 	// Replace with your cluster nodes
-	static String node1Name  = "ec2-54-212-59-90.us-west-2.compute.amazonaws.com";
-	static String node2Name  = "ec2-54-184-119-64.us-west-2.compute.amazonaws.com";
-	static String node3Name  = "ec2-52-12-161-114.us-west-2.compute.amazonaws.com";
+	static String node1Name  = "instance-16452.bigstep.io";
+	static String node2Name  = "instance-16453.bigstep.io";
+	static String node3Name  = "instance-16457.bigstep.io";
 	static String bucketName = "beer-sample";  // MUST use the beer-sample, do not change!
 
 	// This test relies on using certain keys that are known to hash to certain nodes
@@ -86,7 +86,7 @@ public class DownNodeRecoveryTester {
 	static String keyThatHashesToNode3 = "21st_amendment_brewery_cafe-oyster_point_oyster_stout";
 	// 21st_amendment_brewery_cafe also goes to node 2
 	static long globalTimeout          = 2000;
-	static int sleepInterval           = 250;        	 // 500 milliseconds between tests
+	static int sleepInterval           = 500;        	 // 500 milliseconds between tests
 	static boolean debuggingMax        = false;
     static boolean errorOnly           = true; 
 
